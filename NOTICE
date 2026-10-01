@@ -1,0 +1,13 @@
+Cloud in a Bottle packaging for Overleaf
+
+The MIT license in LICENSE applies to the original Cloud in a Bottle
+packaging and integration code in this repository, including its original
+authentication proxy, admin bootstrap, startup script, manifest, and documentation.
+
+Upstream software retains its own licenses and copyright notices:
+- Overleaf Community Edition: https://github.com/overleaf/overleaf
+- MongoDB: https://www.mongodb.com/
+- Redis: https://redis.io/
+
+The packaging grant does not relicense upstream applications, copied or
+adapted upstream material, dependencies, or software supplied by base images.
