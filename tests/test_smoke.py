@@ -26,6 +26,7 @@ def test_owner_auto_login(stack: OpenhostStack) -> None:
         if logged_in or time.monotonic() > deadline:
             break
         time.sleep(5)
+    bootstrap_logs = "\n".join(line for line in stack.app_logs().splitlines() if "[bootstrap]" in line)
     assert logged_in, (
-        f"GET /project ended at {response.url} ({response.status_code})\n\napp logs:\n{stack.app_logs()[-5000:]}"
+        f"GET /project ended at {response.url} ({response.status_code})\n\nbootstrap logs:\n{bootstrap_logs[-8000:]}"
     )
