@@ -164,12 +164,12 @@ def _run_create_user(email: str) -> tuple[str, str]:
     # the limited punctuation Overleaf actually emits — to avoid
     # picking up trailing JSON quotes / escapes.
     m = re.search(
-        r"https?://[A-Za-z0-9._\-/]+/user/activate\?token=[A-Za-z0-9._\-]+(?:&user_id=[A-Za-z0-9]+)?",
+        r"https?://[A-Za-z0-9._\-/:]+/user/activate\?token=[A-Za-z0-9._\-]+(?:&user_id=[A-Za-z0-9]+)?",
         output,
     )
     if not m:
         m = re.search(
-            r"https?://[A-Za-z0-9._\-/]+/user/password/set\?passwordResetToken=[A-Za-z0-9._\-]+(?:&[A-Za-z0-9.=&_\-]+)?",
+            r"https?://[A-Za-z0-9._\-/:]+/user/password/set\?passwordResetToken=[A-Za-z0-9._\-]+(?:&[A-Za-z0-9.=&_\-]+)?",
             output,
         )
     if not m:
