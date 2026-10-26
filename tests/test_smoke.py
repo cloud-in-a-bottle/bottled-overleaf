@@ -1,5 +1,6 @@
 import time
 
+import requests
 from openhost_test_harness import OpenhostStack
 
 
@@ -21,12 +22,16 @@ def test_owner_auto_login(stack: OpenhostStack) -> None:
     # owner in and Overleaf redirects /project to /login.
     deadline = time.monotonic() + 300
     while True:
-        response = stack.owner_session.get(f"{stack.url}/project", headers={"Accept": "text/html"}, timeout=30)
-        logged_in = response.status_code == 200 and "/login" not in response.url
+        try:
+            response = stack.owner_session.get(f"{stack.url}/project", headers={"Accept": "text/html"}, timeout=30)
+            outcome = f"ended at {response.url} ({response.status_code})"
+            logged_in = response.status_code == 200 and "/login" not in response.url
+        except requests.ConnectionError as e:
+            outcome = f"failed: {e}"
+            logged_in = False
         if logged_in or time.monotonic() > deadline:
             break
         time.sleep(5)
-    bootstrap_logs = "\n".join(line for line in stack.app_logs().splitlines() if "[bootstrap]" in line)
-    assert logged_in, (
-        f"GET /project ended at {response.url} ({response.status_code})\n\nbootstrap logs:\n{bootstrap_logs[-8000:]}"
-    )
+    logs = stack.app_logs().splitlines()
+    proxy_and_bootstrap = "\n".join(line for line in logs if "[bootstrap]" in line or "auto-login" in line)
+    assert logged_in, f"GET /project {outcome}\n\nbootstrap and auto-login logs:\n{proxy_and_bootstrap[-8000:]}"
