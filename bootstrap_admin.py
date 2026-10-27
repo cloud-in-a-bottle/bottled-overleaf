@@ -41,10 +41,17 @@ import urllib.request
 CRED_FILE = os.environ.get(
     "CRED_FILE", "/data/app_data/overleaf/admin-credentials.txt"
 )
-ADMIN_EMAIL = os.environ.get(
-    "OVERLEAF_ADMIN_EMAIL",
-    f"admin@{os.environ.get('OPENHOST_ZONE_DOMAIN', 'openhost.local')}",
-)
+ZONE_DOMAIN = os.environ.get("OPENHOST_ZONE_DOMAIN", "openhost.local")
+# A dev router's zone domain includes its port (eg "zone.localhost:8080"),
+# which Overleaf rejects in an email address, so use just the hostname.
+if ":" in ZONE_DOMAIN:
+    print(
+        f"[bootstrap] WARNING: zone domain {ZONE_DOMAIN} has a port; using "
+        f"{ZONE_DOMAIN.rsplit(':', 1)[0]} for the admin email",
+        flush=True,
+    )
+    ZONE_DOMAIN = ZONE_DOMAIN.rsplit(":", 1)[0]
+ADMIN_EMAIL = os.environ.get("OVERLEAF_ADMIN_EMAIL", f"admin@{ZONE_DOMAIN}")
 WEB_PORT = int(os.environ.get("OVERLEAF_WEB_PORT", "80"))
 OVERLEAF = f"http://127.0.0.1:{WEB_PORT}"
 SHARELATEX_DIR = "/overleaf"
@@ -157,12 +164,12 @@ def _run_create_user(email: str) -> tuple[str, str]:
     # the limited punctuation Overleaf actually emits — to avoid
     # picking up trailing JSON quotes / escapes.
     m = re.search(
-        r"https?://[A-Za-z0-9._\-/]+/user/activate\?token=[A-Za-z0-9._\-]+(?:&user_id=[A-Za-z0-9]+)?",
+        r"https?://[A-Za-z0-9._\-/:]+/user/activate\?token=[A-Za-z0-9._\-]+(?:&user_id=[A-Za-z0-9]+)?",
         output,
     )
     if not m:
         m = re.search(
-            r"https?://[A-Za-z0-9._\-/]+/user/password/set\?passwordResetToken=[A-Za-z0-9._\-]+(?:&[A-Za-z0-9.=&_\-]+)?",
+            r"https?://[A-Za-z0-9._\-/:]+/user/password/set\?passwordResetToken=[A-Za-z0-9._\-]+(?:&[A-Za-z0-9.=&_\-]+)?",
             output,
         )
     if not m:

@@ -1,5 +1,6 @@
 import time
 
+import requests
 from openhost_test_harness import OpenhostStack
 
 
@@ -13,4 +14,26 @@ def test_app_serves_owner(stack: OpenhostStack) -> None:
         time.sleep(2)
     assert response.status_code < 400, (
         f"GET / returned {response.status_code}: {response.text[:500]}\n\napp logs:\n{stack.app_logs()[-5000:]}"
+    )
+
+
+def test_owner_auto_login(stack: OpenhostStack) -> None:
+    # The admin account is bootstrapped in the background once Overleaf is up; until then the proxy can't log the
+    # owner in and Overleaf redirects /project to /login.
+    deadline = time.monotonic() + 300
+    while True:
+        try:
+            response = stack.owner_session.get(f"{stack.url}/project", headers={"Accept": "text/html"}, timeout=30)
+            outcome = f"ended at {response.url} ({response.status_code})"
+            logged_in = response.status_code == 200 and "/login" not in response.url
+        except requests.ConnectionError as e:
+            outcome = f"failed: {e}"
+            logged_in = False
+        if logged_in or time.monotonic() > deadline:
+            break
+        time.sleep(5)
+    logs = stack.app_logs()
+    bootstrap_logs = "\n".join(line for line in logs.splitlines() if "[bootstrap]" in line)
+    assert logged_in, (
+        f"GET /project {outcome}\n\nbootstrap logs:\n{bootstrap_logs[-8000:]}\n\napp logs:\n{logs[-3000:]}"
     )
