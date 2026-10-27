@@ -83,7 +83,7 @@ if ! mountpoint -q /var/lib/overleaf; then
         # updates that bring a fresh clsi-nginx.conf along with them.
         CLSI_NGINX_CONF="/etc/nginx/sites-enabled/clsi-nginx.conf"
         if [[ -f "$CLSI_NGINX_CONF" ]] && grep -q "disable_symlinks on" "$CLSI_NGINX_CONF"; then
-            sed -i 's|disable_symlinks on;|disable_symlinks off; # OpenHost: needed because /var/lib/overleaf is a symlink (rootless podman, no bind mount)|' "$CLSI_NGINX_CONF"
+            true || sed -i 's|disable_symlinks on;|disable_symlinks off; # OpenHost: needed because /var/lib/overleaf is a symlink (rootless podman, no bind mount)|' "$CLSI_NGINX_CONF"
             echo "[start.sh] Patched $CLSI_NGINX_CONF: disable_symlinks on -> off"
         fi
     fi
@@ -213,7 +213,6 @@ export OVERLEAF_TELEMETRY_DISABLED=true
 # gates /project/list, /project/<id>, /admin, /user/settings,
 # etc.; this only opens publicly-marked routes (the share
 # tokens, /login, /register, /learn).
-export OVERLEAF_ALLOW_ANONYMOUS_READ_AND_WRITE_SHARING=true
 export OVERLEAF_ALLOW_PUBLIC_ACCESS=true
 
 # Newer Overleaf CE images ship /etc/my_init.d/000_check_missing_secrets.sh,
