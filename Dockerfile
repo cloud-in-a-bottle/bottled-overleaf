@@ -21,10 +21,11 @@
 #   3. Captures the rotated overleaf.sid cookie + 302s the
 #      browser to the original URL with the cookie set.
 #
-# We base on sharelatex/sharelatex:latest (Phusion/baseimage,
-# Ubuntu, ~1.1 GiB) and add MongoDB + Redis + Python.
+# We base on sharelatex/sharelatex (Phusion/baseimage, Ubuntu,
+# ~1.1 GiB), pinned to an exact release and its multi-arch index
+# digest, and add MongoDB + Redis + Python.
 
-FROM docker.io/sharelatex/sharelatex:latest
+FROM docker.io/sharelatex/sharelatex:6.3.2@sha256:ada39211c54a1e748065834ec44d3a49094cc475c28d8b803a251901592a94b2
 
 USER root
 
@@ -34,7 +35,11 @@ ARG DEBIAN_FRONTEND=noninteractive
 # replace that with our own start.sh which supervises mongo +
 # redis + the upstream services + the auth-proxy.
 
-# Add MongoDB 6 + Redis from upstream apt repos.  The base image
+# Exact MongoDB + mongosh versions from MongoDB's 8.0 apt repo.
+ARG MONGODB_VERSION=8.0.34
+ARG MONGOSH_VERSION=2.14.0
+
+# Add MongoDB 8 + Redis from upstream apt repos.  The base image
 # is Ubuntu 22.04 (jammy).
 RUN apt-get update -qq \
  && apt-get install -y --no-install-recommends \
@@ -53,11 +58,11 @@ RUN apt-get update -qq \
         > /etc/apt/sources.list.d/mongodb.list \
  && apt-get update -qq \
  && apt-get install -y --no-install-recommends \
-        mongodb-org-server \
-        mongodb-org-shell \
-        mongodb-org-mongos \
-        mongodb-org-tools \
-        mongodb-mongosh \
+        mongodb-org-server=${MONGODB_VERSION} \
+        mongodb-org-shell=${MONGODB_VERSION} \
+        mongodb-org-mongos=${MONGODB_VERSION} \
+        mongodb-org-tools=${MONGODB_VERSION} \
+        mongodb-mongosh=${MONGOSH_VERSION} \
  && rm -rf /var/lib/apt/lists/*
 
 # Application files.  COPY in rootless podman doesn't always
