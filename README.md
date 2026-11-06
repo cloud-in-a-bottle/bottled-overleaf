@@ -24,6 +24,12 @@ browser → OpenHost router (subdomain overleaf.<zone>; verifies owner
 3. Captures the rotated `overleaf.sid` cookie + 302s the browser back
    to the original URL with the cookie set.
 
+The proxy starts before Overleaf's background admin bootstrap completes. Until
+the credentials are ready, owner HTML navigations receive an auto-refreshing
+startup page (503), rather than falling through to Overleaf's manual login.
+`/_healthz` remains a liveness check for the proxy; it can return 200 before
+Overleaf and owner SSO are ready.
+
 ## Sharing projects with non-owners
 
 Every Overleaf URL is exposed publicly via `public_paths = ["/"]`,

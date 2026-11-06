@@ -33,6 +33,7 @@ import secrets
 import string
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -351,10 +352,10 @@ def _delete_user_if_exists(email: str) -> None:
         pass
 
 
-def main() -> int:
+def _bootstrap_once() -> None:
     if os.path.exists(CRED_FILE):
         print(f"[bootstrap] {CRED_FILE} exists; skipping admin creation")
-        return 0
+        return
 
     print("[bootstrap] Waiting for Overleaf /login to be ready")
     _wait_for_overleaf_ready()
@@ -373,7 +374,7 @@ def main() -> int:
     _set_password(token, activation_path, password)
 
     os.makedirs(os.path.dirname(CRED_FILE), exist_ok=True)
-    fd = os.open(CRED_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    fd, tmp_path = tempfile.mkstemp(prefix=".admin-credentials-", dir=os.path.dirname(CRED_FILE))
     try:
         with os.fdopen(fd, "w") as fh:
             fh.write(
@@ -389,14 +390,28 @@ def main() -> int:
                 f"export OVERLEAF_ADMIN_EMAIL='{ADMIN_EMAIL}'\n"
                 f"export OVERLEAF_ADMIN_PASSWORD='{password}'\n"
             )
-    except OSError:
-        try:
-            os.close(fd)
-        except OSError:
-            pass
-        raise
+        os.replace(tmp_path, CRED_FILE)
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
     print(f"[bootstrap] Persisted admin credentials to {CRED_FILE}")
+
+
+def main() -> int:
+    # /login starts answering before the activation handler, Mongo migrations,
+    # and the other Overleaf services are fully ready.  A single failed attempt
+    # used to exit the background bootstrap permanently, leaving the owner at
+    # a manual login until somebody restarted the container.
+    for attempt in range(1, 6):
+        try:
+            _bootstrap_once()
+            return 0
+        except (OSError, RuntimeError, subprocess.SubprocessError, urllib.error.URLError) as exc:
+            if attempt == 5:
+                raise
+            print(f"[bootstrap] Attempt {attempt} failed: {exc}; retrying in 10s", file=sys.stderr, flush=True)
+            time.sleep(10)
     return 0
 
 
