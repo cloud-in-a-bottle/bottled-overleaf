@@ -79,6 +79,11 @@ via `/admin/register` (admin-only):
     password-reset URL from stdout, POSTs `/user/password/set` with
     a freshly-generated 40-character password, and persists creds.
 
+`cloudinabottle.toml` sets `prebuilt_image`, so Cloud in a Bottle pulls our
+signed prebuilt image (built by CI from each release tag) instead of building
+the Dockerfile. To fork and modify this app, comment out `prebuilt_image` so
+your instance builds from source.
+
 ## Why Pattern B (not OIDC)
 
 Overleaf Community Edition does NOT support OIDC SSO; OAuth/OIDC is a
