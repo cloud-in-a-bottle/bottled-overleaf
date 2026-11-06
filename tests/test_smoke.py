@@ -5,13 +5,17 @@ from openhost_test_harness import OpenhostStack
 
 
 def test_app_serves_owner(stack: OpenhostStack) -> None:
-    # The app is marked running once its health check passes; "/" can take a little longer to come up.
-    deadline = time.monotonic() + 60
+    # The liveness check passes before Overleaf and admin bootstrap are ready.
+    # An owner navigation receives an auto-refreshing 503 while bootstrap runs.
+    deadline = time.monotonic() + 300
     while True:
-        response = stack.owner_session.get(f"{stack.url}/", timeout=30)
+        response = stack.owner_session.get(f"{stack.url}/", headers={"Accept": "text/html"}, timeout=30)
+        if response.status_code == 503:
+            assert "Overleaf is starting" in response.text
+            assert response.headers["Cache-Control"] == "no-store"
         if response.status_code < 400 or time.monotonic() > deadline:
             break
-        time.sleep(2)
+        time.sleep(3)
     assert response.status_code < 400, (
         f"GET / returned {response.status_code}: {response.text[:500]}\n\napp logs:\n{stack.app_logs()[-5000:]}"
     )

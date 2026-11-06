@@ -450,6 +450,13 @@ class AuthProxyHandler(BaseHTTPRequestHandler):
             and (not has_session or is_login_navigation)
         )
         if should_auto_login:
+            # Bootstrap can take minutes after the proxy starts.  Sending an
+            # owner to Overleaf's login form in the meantime makes SSO look
+            # broken and leaves them there even after bootstrap finishes.
+            # Keep the navigation here until credentials are available.
+            if _read_admin_creds(self.cred_file) is None:
+                self._send_starting_page()
+                return
             if self._maybe_auto_login():
                 return
         elif is_html_navigation and is_app_path:
@@ -463,6 +470,27 @@ class AuthProxyHandler(BaseHTTPRequestHandler):
             )
 
         self._proxy()
+
+    def _send_starting_page(self) -> None:
+        body = (
+            b'<!doctype html><html><head><meta charset="utf-8">'
+            b'<meta http-equiv="refresh" content="3">'
+            b'<title>Starting Overleaf</title></head><body>'
+            b'<p>Overleaf is starting. This page will retry automatically.</p>'
+            b'</body></html>'
+        )
+        try:
+            self.send_response(503)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Retry-After", "3")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+        except OSError as exc:
+            log.debug("client disconnected during startup page: %s", exc)
 
     def _maybe_auto_login(self) -> bool:
         creds = _read_admin_creds(self.cred_file)
