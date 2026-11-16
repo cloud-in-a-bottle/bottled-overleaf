@@ -1,6 +1,7 @@
 [app]
 name = "overleaf"
-version = "1.0.0"
+version = "1.0.1"
+release_tag_format = "semver"
 description = "Overleaf Community Edition (online LaTeX editor) packaged for Cloud in a Bottle.  Bundles MongoDB + Redis in-container; the Cloud in a Bottle zone owner is auto-signed-in to the Overleaf admin via an auth-proxy that mints an Overleaf session against the bootstrap-generated admin credentials."
 authors = ["Andrew Laack <andrew@laack.co>"]
 
